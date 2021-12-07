@@ -20,9 +20,13 @@ def updateLexicon(obj):
 
         # remove punctuations from title and content
         for l in obj[i]['title']:
+            if l in punc[4]:
+                obj[i]['title'] = obj[i]['title'].replace(l, ' ')
             if l in punc:
                 obj[i]['title'] = obj[i]['title'].replace(l, '')
         for l in obj[i]['content']:
+            if l in punc[4]:
+                obj[i]['content'] = obj[i]['content'].replace(l, ' ')
             if l in punc:
                 obj[i]['content'] = obj[i]['content'].replace(l, '')
         # words are tokinized and stemming words removed
@@ -33,7 +37,7 @@ def updateLexicon(obj):
 
     # remove stopwords
     together = [word for word in together if not word in stopwords.words('english')]
-
+    together = [word for word in together if not word.isdigit()]
     # add words and word_ID to lexicon
     for ii, wdd in enumerate(together):
         lexicon[wdd] = ii

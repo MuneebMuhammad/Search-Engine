@@ -1,3 +1,4 @@
+# Forward indexing class
 class ForwardIndexing(object):
 
     # constructor to initialize source and author of publication of an article

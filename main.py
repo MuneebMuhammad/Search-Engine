@@ -22,12 +22,12 @@ def updateLexicon(obj):
         for l in obj[i]['title']:
             if l in punc[4]:
                 obj[i]['title'] = obj[i]['title'].replace(l, ' ')
-            if l in punc:
+            elif l in punc:
                 obj[i]['title'] = obj[i]['title'].replace(l, '')
         for l in obj[i]['content']:
             if l in punc[4]:
                 obj[i]['content'] = obj[i]['content'].replace(l, ' ')
-            if l in punc:
+            elif l in punc:
                 obj[i]['content'] = obj[i]['content'].replace(l, '')
         # words are tokinized and stemming words removed
         together.extend([porter.stem(t) for t in word_tokenize(obj[i]['title'])])

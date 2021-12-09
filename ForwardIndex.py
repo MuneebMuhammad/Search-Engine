@@ -6,9 +6,11 @@ class ForwardIndexing(object):
         self.source = srce
         self.author = athr
         self.title = {}  # stores location of each word in title
-        self.content = {}   # stores location of each word in content
+        self.content = {}  # stores location of each word in content
+
 
 class Hits(object):
-    def __init__(self, i, rnk):
+    def __init__(self, i, rnk, hts):
         self.docId = i
         self.rank = rnk
+        self.hits = hts

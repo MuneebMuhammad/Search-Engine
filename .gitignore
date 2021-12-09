@@ -138,6 +138,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-fwdix.pkl
-Lexicon.pkl
-21stcenturywire.json
+/InvertedIndex.pkl
+/fwdix.pkl
+/Lexicon.pkl
+/.idea
+/21stcenturywire.json

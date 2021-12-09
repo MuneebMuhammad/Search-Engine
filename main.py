@@ -90,6 +90,7 @@ def forwardI(obj):
         # store words and their locations in an article's title
         tltk = word_tokenize(obj[i]['title'])
         for loc, wd in enumerate(tltk):
+            wd = snow_stem.stem(wd)
             if wd in lexicon:
                 wids = lexicon[wd]
                 if wids not in docs[i].title:
@@ -99,6 +100,7 @@ def forwardI(obj):
         # store words and their locations in an article's content
         wdtk = word_tokenize(obj[i]['content'])
         for loc, wd in enumerate(wdtk):
+            wd = snow_stem.stem(wd)
             if wd in lexicon:
                 wids = lexicon[wd]
                 if wids not in docs[i].content:  # changed
@@ -119,8 +121,59 @@ def forwardI(obj):
         a_file = open("fwdix.pkl", "wb")
         pickle.dump(previous, a_file)
         a_file.close()
+    createInvertedIndex()
 
-    # read json file
+def createInvertedIndex():
+    a_file = open("Lexicon.pkl", "rb")
+    lexicon = pickle.load(a_file)
+    a_file.close()
+
+    a_file = open("fwdix.pkl", 'rb')
+    fwdIdx = pickle.load(a_file)
+    a_file.close()
+
+    invertedIndex = {}
+    for wd in lexicon:
+        wid = lexicon[wd]
+        if wid not in invertedIndex:
+            invertedIndex[wid] = []
+        for i in range(len(fwdIdx)):
+            rank = 0
+            hits = 0
+            flag = False
+            if wid in fwdIdx[i].title:
+                hits += len(fwdIdx[i].title[wid])
+                rank += hits*5
+                flag = True
+            if wid in fwdIdx[i].content:
+                hits += len(fwdIdx[i].content[wid])
+                rank += hits*3
+                flag = True
+            if wid == fwdIdx[i].author:
+                hits+=1
+                rank += 150
+                flag = True
+            if wid == fwdIdx[i].source:
+                hits+=1
+                rank += 100
+                flag = True
+            if flag:
+                invertedIndex[wid].append(ForwardIndex.Hits(i, rank,hits))
+            flag = False
+    # create file if it don't exists and add invertedIndex to the file
+    if not Path('InvertedIndex.pkl').is_file():
+        a_file = open("InvertedIndex.pkl", "wb")
+        pickle.dump(invertedIndex, a_file)
+        a_file.close()
+    # if file already exists then add unique elements of new invertedIndex
+    else:
+        a_file = open("InvertedIndex.pkl", "rb")
+        previous = pickle.load(a_file)
+        a_file.close()
+        previous.extend(invertedIndex)
+        a_file = open("InvertedIndex.pkl", "wb")
+        pickle.dump(previous, a_file)
+        a_file.close()
 
 
 # for filename in os.listdir("C:/Users/rajaa/PycharmProjects/pythonProject3"):
@@ -140,7 +193,7 @@ obj = json.loads(jsondata)
 print(len(obj))
 myjsonfile.close()
 start = time.time()
-# updateLexicon(obj)
+#updateLexicon(obj)
 print(time.time() - start, " seconds")
 
 # for i in range(len(fileObj)):
@@ -166,8 +219,14 @@ print(time.time() - start, " seconds")
 l_file = open("Lexicon.pkl", 'rb')
 output = pickle.load(l_file)
 print(output)
-a_file = open("fwdix.pkl", "rb")
-previous = pickle.load(a_file)
-a_file.close()
 
-print(previous[0].content)
+f_file = open("fwdix.pkl", "rb")
+fwdIndx = pickle.load(f_file)
+f_file.close()
+
+i_file = open("InvertedIndex.pkl", "rb")
+invtdIndx = pickle.load(i_file)
+i_file.close()
+
+print(fwdIndx[139].content)
+print(invtdIndx[0][0].docId)

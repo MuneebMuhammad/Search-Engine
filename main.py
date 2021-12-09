@@ -1,37 +1,47 @@
 import json  # how to load json files
 import pickle
+import re
+import string
+import timeit
+import time
 import nltk
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from pathlib import Path
 import ForwardIndex
-
+import os
 
 # updates lexicon taken from Lexicon.pkl and restore the new lexicon in Lexicon.pkl
 def updateLexicon(obj):
     lexicon = {}
     together = []
     punc = '''‘!()-[]{};:'"\,<>./?@#$%^&*_~'''
-
+    regex = re.compile('[%s]' % re.escape(string.punctuation))
+    start=time.time()
     for i in range(len(obj)):
         # convert title and content to lowercase
         obj[i]['title'] = obj[i]['title'].lower()
         obj[i]['content'] = obj[i]['content'].lower()
 
+        line = obj[i]['title']
+        obj[i]['title']=""
         # remove punctuations from title and content
-        for l in obj[i]['title']:
-            if l in punc[4]:
-                obj[i]['title'] = obj[i]['title'].replace(l, ' ')
-            elif l in punc:
-                obj[i]['title'] = obj[i]['title'].replace(l, '')
-        for l in obj[i]['content']:
-            if l in punc[4]:
-                obj[i]['content'] = obj[i]['content'].replace(l, ' ')
-            elif l in punc:
-                obj[i]['content'] = obj[i]['content'].replace(l, '')
-        # words are tokinized and stemming words removed
+        for word in line.split():
+            obj[i]['title']+=regex.sub('',word)
+            obj[i]['title']+=" "
+
+        line = obj[i]['content']
+        obj[i]['content']=""
+        for word in line.split():
+            obj[i]['content']+=regex.sub('',word)
+            obj[i]['content']+=" "
+
+    print(time.time()-start)
+    # words are tokinized and stemming words removed
+    for i in range(len(obj)):
         together.extend([porter.stem(t) for t in word_tokenize(obj[i]['title'])])
         together.extend([porter.stem(t) for t in word_tokenize(obj[i]['content'])])
+    print("done")
     # remove duplicates
     together = set(together)
 
@@ -58,7 +68,6 @@ def updateLexicon(obj):
         a_file = open("Lexicon.pkl", "wb")
         pickle.dump(previous, a_file)
         a_file.close()
-    forwardI(obj)
 
 
 # builds forward indexing
@@ -88,7 +97,7 @@ def forwardI(obj):
         for loc, wd in enumerate(wdtk):
             if wd in lexicon:
                 wids = lexicon[wd]
-                if wids not in docs[i].content:
+                if wids not in docs[i].content:  # changed
                     docs[i].content[wids] = []
                 docs[i].content[wids].append(loc)
 
@@ -109,20 +118,54 @@ def forwardI(obj):
 
     # read json file
 
-
-myjsonfile = open('21stcenturywire.json', 'r')
-jsondata = myjsonfile.read()
-fileObj = json.loads(jsondata)
-myjsonfile.close()
+# for filename in os.listdir("C:/Users/rajaa/PycharmProjects/pythonProject3"):
+#     if filename.endswith(".json"):
+#         myjsonfile = open(filename, 'r')
+#         jsondata = myjsonfile.read()
+#         fileObj = json.loads(jsondata)
+#         print(len(fileObj))
+#         myjsonfile.close()
+#         updateLexicon(fileObj)
 
 porter = nltk.PorterStemmer()
 
-updateLexicon(fileObj)
+myjsonfile = open('cbsnews.json', 'r')
+jsondata = myjsonfile.read()
+obj = json.loads(jsondata)
+print(len(obj))
+myjsonfile.close()
+start = time.time()
+updateLexicon(obj)
 
-# checking results of forward indexing
-a_file = open("fwdix.pkl", "rb")
-previous = pickle.load(a_file)
-a_file.close()
+print(time.time()-start," seconds")
 
-print(previous[0].title)
+
+# for i in range(len(fileObj)):
+#     line = fileObj[i]['title'].lower()
+#     fileObj[i]['title']=""
+#     for words in line.split():
+#         fileObj[i]['title']+=words.translate(str.maketrans('','',string.punctuation))
+#         fileObj[i]['title']+=" "
+
+
+# line = fileObj[1]['content'].lower()
+# fileObj[1]['content']=""
+# regex = re.compile('[%s]' % re.escape(string.punctuation))
+# for words in line.split():
+#     if words=="@":
+#         continue
+#     fileObj[1]['content']+=regex.sub('',words)
+#     fileObj[1]['content']+=" "
+#
+#
+# print(fileObj[1]['content'])
+
+l_file = open("Lexicon.pkl",'rb')
+output = pickle.load(l_file)
+#print(output)
+# a_file = open("fwdix.pkl", "rb")
+# previous = pickle.load(a_file)
+# a_file.close()
+#
+# print(previous[0].content)
 

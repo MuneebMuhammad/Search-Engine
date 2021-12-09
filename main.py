@@ -1,53 +1,55 @@
 import json  # how to load json files
 import pickle
 import re
-import string
-import timeit
 import time
 import nltk
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from pathlib import Path
 import ForwardIndex
-import os
+from nltk.stem.snowball import SnowballStemmer
+
 
 # updates lexicon taken from Lexicon.pkl and restore the new lexicon in Lexicon.pkl
 def updateLexicon(obj):
     lexicon = {}
     together = []
     punc = '''‘!()-[]{};:'"\,<>./?@#$%^&*_~'''
-    regex = re.compile('[%s]' % re.escape(string.punctuation))
-    start=time.time()
+
+    regex = re.compile(r"[^\w\s]")
+    start = time.time()
     for i in range(len(obj)):
         # convert title and content to lowercase
         obj[i]['title'] = obj[i]['title'].lower()
         obj[i]['content'] = obj[i]['content'].lower()
 
         line = obj[i]['title']
-        obj[i]['title']=""
+        obj[i]['title'] = ""
+        line = regex.sub(' ', line)
         # remove punctuations from title and content
         for word in line.split():
-            obj[i]['title']+=regex.sub('',word)
-            obj[i]['title']+=" "
+            if not word.isdigit():
+                obj[i]['title'] += word
+                obj[i]['title'] += " "
 
         line = obj[i]['content']
-        obj[i]['content']=""
+        obj[i]['content'] = ""
+        line = regex.sub(' ', line)
+        # remove punctuations from title and content
         for word in line.split():
-            obj[i]['content']+=regex.sub('',word)
-            obj[i]['content']+=" "
-
-    print(time.time()-start)
-    # words are tokinized and stemming words removed
-    for i in range(len(obj)):
-        together.extend([porter.stem(t) for t in word_tokenize(obj[i]['title'])])
-        together.extend([porter.stem(t) for t in word_tokenize(obj[i]['content'])])
-    print("done")
+            if not word.isdigit():
+                obj[i]['content'] += word
+                obj[i]['content'] += " "
+        together.extend([snow_stem.stem(t) for t in word_tokenize(obj[i]['title'])])
+        together.extend([snow_stem.stem(t) for t in word_tokenize(obj[i]['content'])])
+    # words are tokenized and stemming words removed
     # remove duplicates
     together = set(together)
-
     # remove stopwords
     together = [word for word in together if not word in stopwords.words('english')]
-    together = [word for word in together if not word.isdigit()]
+
+    print(time.time() - start)
+    print("done")
     # add words and word_ID to lexicon
     for ii, wdd in enumerate(together):
         lexicon[wdd] = ii
@@ -68,15 +70,17 @@ def updateLexicon(obj):
         a_file = open("Lexicon.pkl", "wb")
         pickle.dump(previous, a_file)
         a_file.close()
+    forwardI(obj)
 
 
 # builds forward indexing
 def forwardI(obj):
     # read lexicon
+    s = time.time()
     a_file = open("Lexicon.pkl", "rb")
     lexicon = pickle.load(a_file)
     a_file.close()
-
+    print(time.time() - s)
     docs = []  # docs will store each article's detail
     n = len(obj)
     for i in range(n):
@@ -84,7 +88,7 @@ def forwardI(obj):
                                                  obj[i]['author']))  # append author and source of the article to docs
 
         # store words and their locations in an article's title
-        tltk = [porter.stem(t) for t in word_tokenize(obj[i]['title'])]
+        tltk = word_tokenize(obj[i]['title'])
         for loc, wd in enumerate(tltk):
             if wd in lexicon:
                 wids = lexicon[wd]
@@ -118,6 +122,7 @@ def forwardI(obj):
 
     # read json file
 
+
 # for filename in os.listdir("C:/Users/rajaa/PycharmProjects/pythonProject3"):
 #     if filename.endswith(".json"):
 #         myjsonfile = open(filename, 'r')
@@ -128,17 +133,15 @@ def forwardI(obj):
 #         updateLexicon(fileObj)
 
 porter = nltk.PorterStemmer()
-
-myjsonfile = open('cbsnews.json', 'r')
+snow_stem = SnowballStemmer(language='english')
+myjsonfile = open('21stcenturywire.json', 'r')
 jsondata = myjsonfile.read()
 obj = json.loads(jsondata)
 print(len(obj))
 myjsonfile.close()
 start = time.time()
-updateLexicon(obj)
-
-print(time.time()-start," seconds")
-
+# updateLexicon(obj)
+print(time.time() - start, " seconds")
 
 # for i in range(len(fileObj)):
 #     line = fileObj[i]['title'].lower()
@@ -160,12 +163,11 @@ print(time.time()-start," seconds")
 #
 # print(fileObj[1]['content'])
 
-l_file = open("Lexicon.pkl",'rb')
+l_file = open("Lexicon.pkl", 'rb')
 output = pickle.load(l_file)
-#print(output)
-# a_file = open("fwdix.pkl", "rb")
-# previous = pickle.load(a_file)
-# a_file.close()
-#
-# print(previous[0].content)
+print(output)
+a_file = open("fwdix.pkl", "rb")
+previous = pickle.load(a_file)
+a_file.close()
 
+print(previous[0].content)

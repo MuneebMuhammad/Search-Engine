@@ -5,6 +5,9 @@ from nltk import word_tokenize
 from nltk.corpus import stopwords
 from pathlib import Path
 import ForwardIndex
+import ssl
+# nltk.download('punkt')
+# nltk.download('stopwords')
 
 # updates lexicon taken from Lexicon.pkl and restore the new lexicon in Lexicon.pkl
 def updateLexicon(obj):
@@ -71,19 +74,19 @@ def forwardI(obj):
         tltk = [porter.stem(t) for t in word_tokenize(obj[i]['title'])]
         for loc, wd in enumerate(tltk):
             if wd in lexicon:
-                wids = lexicon[wd]
-                if wids not in docs[i].title:
-                    docs[i].title[wids] = []
-                docs[i].title[wids].append(loc)
+                wid = lexicon[wd]
+                if wid not in docs[i].title:
+                    docs[i].title[wid] = []
+                docs[i].title[wid].append(loc)
 
         # store words and their locations in an article's content
         wdtk = word_tokenize(obj[i]['content'])
         for loc, wd in enumerate(wdtk):
             if wd in lexicon:
-                wids = lexicon[wd]
-                if wids not in docs[i].content:
-                    docs[i].content[wids] = []
-                docs[i].content[wids].append(loc)
+                wid = lexicon[wd]
+                if wid not in docs[i].content:
+                    docs[i].content[wid] = []
+                docs[i].content[wid].append(loc)
 
     # if forward indexing file don't exist then create it and add the article details to it
     if not Path('fwdix.pkl').is_file():
@@ -116,4 +119,4 @@ a_file = open("fwdix.pkl", "rb")
 previous = pickle.load(a_file)
 a_file.close()
 
-print(previous[0].title)
+print(previous[0].content)

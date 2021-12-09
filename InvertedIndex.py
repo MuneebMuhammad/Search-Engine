@@ -1,6 +1,8 @@
 import pickle
 from pathlib import Path
 
+import ForwardIndex
+
 a_file = open("Lexicon.pkl", "rb")
 lexicon = pickle.load(a_file)
 a_file.close()
@@ -15,23 +17,26 @@ invertedIndex = {}
 def createInvertedIndex():
     for wd in lexicon:
         wid = lexicon[wd]
+        if wid not in invertedIndex:
+            invertedIndex[wid] = []
         for i in range(len(fwdIdx)):
+            rank = 0
+            flag = False
             if wid in fwdIdx[i].title:
-                if wid not in invertedIndex:
-                    invertedIndex[wid] = []
-                invertedIndex[wid].append(i)
-            elif wid in fwdIdx[i].content:
-                if wid not in invertedIndex:
-                    invertedIndex[wid] = []
-                invertedIndex[wid].append(i)
-            elif wid == fwdIdx[i].author:
-                if wid not in invertedIndex:
-                    invertedIndex[wid] = []
-                invertedIndex[wid].append[i]
-            elif wid == fwdIdx[i].source:
-                if wid not in invertedIndex:
-                    invertedIndex[wid] = []
-                invertedIndex[wid].append[i]
+                rank += len(fwdIdx[i].title[wid])*5
+                flag = True
+            if wid in fwdIdx[i].content:
+                rank += len(fwdIdx[i].content[wid])*3
+                flag = True
+            if wid == fwdIdx[i].author:
+                rank += 150
+                flag = True
+            if wid == fwdIdx[i].source:
+                rank += 100
+                flag = True
+            if flag:
+                invertedIndex[wid].append(ForwardIndex.Hits(i, rank))
+            flag = False
     # create file if it don't exists and add invertedIndex to the file
     if not Path('InvertedIndex.pkl').is_file():
         a_file = open("InvertedIndex.pkl", "wb")
@@ -48,5 +53,9 @@ def createInvertedIndex():
         a_file.close()
 
 
-createInvertedIndex()
-print(invertedIndex[7])
+# createInvertedIndex()
+a_file = open("InvertedIndex.pkl", "rb")
+invtdIndx = pickle.load(a_file)
+a_file.close()
+print(fwdIdx[0].title)
+# print(invtdIndx[1][0].rank)

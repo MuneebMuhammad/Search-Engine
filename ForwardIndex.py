@@ -8,3 +8,7 @@ class ForwardIndexing(object):
         self.title = {}  # stores location of each word in title
         self.content = {}   # stores location of each word in content
 
+class Hits(object):
+    def __init__(self, i, rnk):
+        self.docId = i
+        self.rank = rnk

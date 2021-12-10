@@ -14,35 +14,42 @@ from nltk.stem.snowball import SnowballStemmer
 def updateLexicon(obj):
     lexicon = {}
     together = []
-    punc = '''‘!()-[]{};:'"\,<>./?@#$%^&*_~'''
 
+    # compile the regex so every character that is not a word or a space will be removed
     regex = re.compile(r"[^\w\s]")
+
     start = time.time()
     for i in range(len(obj)):
         # convert title and content to lowercase
         obj[i]['title'] = obj[i]['title'].lower()
         obj[i]['content'] = obj[i]['content'].lower()
 
+        # get the title in the line variable and apply regex
         line = obj[i]['title']
         obj[i]['title'] = ""
         line = regex.sub(' ', line)
         # remove punctuations from title and content
+        # re-intialize the title word by word from line
         for word in line.split():
             if not word.isdigit():
                 obj[i]['title'] += word
                 obj[i]['title'] += " "
 
+        # get the content in the line variable and apply regex
         line = obj[i]['content']
         obj[i]['content'] = ""
         line = regex.sub(' ', line)
         # remove punctuations from title and content
+        # re-intialize the title word by word from line
         for word in line.split():
             if not word.isdigit():
                 obj[i]['content'] += word
                 obj[i]['content'] += " "
-        together.extend([snow_stem.stem(t) for t in word_tokenize(obj[i]['title'])])
-        together.extend([snow_stem.stem(t) for t in word_tokenize(obj[i]['content'])])
-    # words are tokenized and stemming words removed
+
+        # words are tokenized and stemming removed
+        together.extend([snow_stemmer.stem(t) for t in word_tokenize(obj[i]['title'])])
+        together.extend([snow_stemmer.stem(t) for t in word_tokenize(obj[i]['content'])])
+
     # remove duplicates
     together = set(together)
     # remove stopwords
@@ -90,7 +97,7 @@ def forwardI(obj):
         # store words and their locations in an article's title
         tltk = word_tokenize(obj[i]['title'])
         for loc, wd in enumerate(tltk):
-            wd = snow_stem.stem(wd)
+            wd = snow_stemmer.stem(wd)
             if wd in lexicon:
                 wids = lexicon[wd]
                 if wids not in docs[i].title:
@@ -100,7 +107,7 @@ def forwardI(obj):
         # store words and their locations in an article's content
         wdtk = word_tokenize(obj[i]['content'])
         for loc, wd in enumerate(wdtk):
-            wd = snow_stem.stem(wd)
+            wd = snow_stemmer.stem(wd)
             if wd in lexicon:
                 wids = lexicon[wd]
                 if wids not in docs[i].content:  # changed
@@ -123,42 +130,54 @@ def forwardI(obj):
         a_file.close()
     createInvertedIndex()
 
+
 def createInvertedIndex():
+    # load the lexicon
     a_file = open("Lexicon.pkl", "rb")
     lexicon = pickle.load(a_file)
     a_file.close()
 
+    # load the forward index
     a_file = open("fwdix.pkl", 'rb')
     fwdIdx = pickle.load(a_file)
     a_file.close()
 
+    # dict to store inverted index
     invertedIndex = {}
+
     for wd in lexicon:
         wid = lexicon[wd]
+        # if word is not in the inverted idex create an empty list for it
         if wid not in invertedIndex:
             invertedIndex[wid] = []
         for i in range(len(fwdIdx)):
             rank = 0
             hits = 0
+            # flag indicates if a word has been found in a particular document
             flag = False
+            # if the word in title calculate hits and rank
             if wid in fwdIdx[i].title:
                 hits += len(fwdIdx[i].title[wid])
-                rank += hits*5
+                rank += hits * 5
                 flag = True
+            # if the word in content calculate hits and rank
             if wid in fwdIdx[i].content:
                 hits += len(fwdIdx[i].content[wid])
-                rank += hits*3
+                rank += hits * 3
                 flag = True
+            # if the word in author calculate hits and rank
             if wid == fwdIdx[i].author:
-                hits+=1
+                hits += 1
                 rank += 150
                 flag = True
+            # if the word in source calculate hits and rank
             if wid == fwdIdx[i].source:
-                hits+=1
+                hits += 1
                 rank += 100
                 flag = True
             if flag:
-                invertedIndex[wid].append(ForwardIndex.Hits(i, rank,hits))
+                # if flag is true append the docId, rank and hits for that word
+                invertedIndex[wid].append(ForwardIndex.Hits(i, rank, hits))
             flag = False
     # create file if it don't exists and add invertedIndex to the file
     if not Path('InvertedIndex.pkl').is_file():
@@ -176,57 +195,26 @@ def createInvertedIndex():
         a_file.close()
 
 
-# for filename in os.listdir("C:/Users/rajaa/PycharmProjects/pythonProject3"):
-#     if filename.endswith(".json"):
-#         myjsonfile = open(filename, 'r')
-#         jsondata = myjsonfile.read()
-#         fileObj = json.loads(jsondata)
-#         print(len(fileObj))
-#         myjsonfile.close()
-#         updateLexicon(fileObj)
+snow_stemmer = SnowballStemmer(language='english')
 
-porter = nltk.PorterStemmer()
-snow_stem = SnowballStemmer(language='english')
 myjsonfile = open('21stcenturywire.json', 'r')
 jsondata = myjsonfile.read()
 obj = json.loads(jsondata)
-print(len(obj))
 myjsonfile.close()
-start = time.time()
-#updateLexicon(obj)
-print(time.time() - start, " seconds")
 
-# for i in range(len(fileObj)):
-#     line = fileObj[i]['title'].lower()
-#     fileObj[i]['title']=""
-#     for words in line.split():
-#         fileObj[i]['title']+=words.translate(str.maketrans('','',string.punctuation))
-#         fileObj[i]['title']+=" "
-
-
-# line = fileObj[1]['content'].lower()
-# fileObj[1]['content']=""
-# regex = re.compile('[%s]' % re.escape(string.punctuation))
-# for words in line.split():
-#     if words=="@":
-#         continue
-#     fileObj[1]['content']+=regex.sub('',words)
-#     fileObj[1]['content']+=" "
-#
-#
-# print(fileObj[1]['content'])
+updateLexicon(obj)
 
 l_file = open("Lexicon.pkl", 'rb')
 output = pickle.load(l_file)
 print(output)
 
-f_file = open("fwdix.pkl", "rb")
-fwdIndx = pickle.load(f_file)
-f_file.close()
-
-i_file = open("InvertedIndex.pkl", "rb")
-invtdIndx = pickle.load(i_file)
-i_file.close()
-
-print(fwdIndx[139].content)
-print(invtdIndx[0][0].docId)
+# f_file = open("fwdix.pkl", "rb")
+# fwdIndx = pickle.load(f_file)
+# f_file.close()
+#
+# i_file = open("InvertedIndex.pkl", "rb")
+# invtdIndx = pickle.load(i_file)
+# i_file.close()
+#
+# print(fwdIndx[139].content)
+# print(invtdIndx[5538][1].rank)

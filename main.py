@@ -40,7 +40,7 @@ def updateLexicon(obj):
         obj[i]['content'] = ""
         line = regex.sub(' ', line)
         # remove punctuations from title and content
-        # re-intialize the title word by word from line
+        # re-intialize the content word by word from line
         for word in line.split():
             if not word.isdigit():
                 obj[i]['content'] += word

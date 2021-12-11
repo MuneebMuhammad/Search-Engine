@@ -1,12 +1,11 @@
-# Forward indexing class
 class ForwardIndexing(object):
 
-    # constructor to initialize source of publication of an article
-    def __init__(self, srce):
+    # constructor to initialize source and author of publication of an article
+    def __init__(self, srce, athr):
         self.source = srce
+        self.author = athr
         self.title = {}  # stores location of each word in title
-        self.content = {}  # stores location of each word in content
-
+        self.content = {}   # stores location of each word in content
 
 class Hits(object):
     def __init__(self, i, rnk, hts):

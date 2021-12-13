@@ -16,8 +16,15 @@ import string
 def updateLexicon(obj):
     # parse through every article in each document
     for i in range(len(obj)):
-        docs.append(ForwardIndex.ForwardIndexing(obj[i]['source'],
-                                                 obj[i]['author']))  # add author of article to forward index object
+        # add author and source of article to forward index object
+        srce = obj[i]['source'].lower()
+        if srce not in lexicon:
+            lexicon[srce] = lexicon[(list(lexicon)[-1])] + 1
+        athr = obj[i]['author'].lower()
+        if athr not in lexicon:
+            lexicon[athr] = lexicon[(list(lexicon)[-1])] + 1
+        docs.append(ForwardIndex.ForwardIndexing(lexicon[srce], lexicon[athr]))
+        
         # parse through each character in title and collect alphabetical words with size greater than 3
         t = obj[i]['title']
         word = ""
@@ -38,7 +45,7 @@ def updateLexicon(obj):
                     lexicon[word] = lexicon[(list(lexicon)[-1])] + 1
                 wid = lexicon[word]
                 # add the word along with its location if the word exists in title
-                if wid not in docs[i].title:
+                if wid not in docs[i].title:  # use -1 instead of i to get access to last document
                     docs[i].title[wid] = []
                 docs[i].title[wid].append(loc)
                 loc += 1
@@ -71,7 +78,6 @@ def updateLexicon(obj):
     a_file = open("Lexicon.pkl", "wb")
     pickle.dump(lexicon, a_file)
     a_file.close()
-    createInvertedIndex()
 
 
 def createInvertedIndex():
@@ -80,8 +86,8 @@ def createInvertedIndex():
 
     for wd in lexicon:
         wid = lexicon[wd]
-        # if word is not in the inverted idex create an empty list for it
-        if wid not in invertedIndex:
+        # if word is not in the inverted index create an empty list for it
+        if wid not in invertedIndex: # can be removed ******
             invertedIndex[wid] = []
         for i in range(len(docs)):
             rank = 0
@@ -121,10 +127,9 @@ def createInvertedIndex():
 
 snow_stemmer = SnowballStemmer(language='english')
 cwd = os.getcwd()
-files = [one for one in os.listdir(cwd) if one.endswith('.json')]
 docs = []
-lexicon = {}
-lexicon['google'] = 0
+lexicon = {'google': 0}
+files = [one for one in os.listdir(cwd) if one.endswith('.json')]
 start_time = time.time()
 for z in files:
     myjsonfile = open(z, 'r')
@@ -132,4 +137,6 @@ for z in files:
     obj = json.loads(jsondata)
     myjsonfile.close()
     updateLexicon(obj)
+
+createInvertedIndex()
 print("time:", time.time() - start_time, " seconds")

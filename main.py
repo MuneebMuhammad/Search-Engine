@@ -16,19 +16,23 @@ import string
 def updateLexicon(obj):
     # parse through every article in each document
     for i in range(len(obj)):
-        # add author and source of article to forward index object
+        # add author and source of article to forward index title
         srce = obj[i]['source'].lower()
+        srce = snow_stemmer.stem(srce)
         if srce not in lexicon:
             lexicon[srce] = lexicon[(list(lexicon)[-1])] + 1
         athr = obj[i]['author'].lower()
+        athr = snow_stemmer.stem(athr)
         if athr not in lexicon:
             lexicon[athr] = lexicon[(list(lexicon)[-1])] + 1
-        docs.append(ForwardIndex.ForwardIndexing(lexicon[srce], lexicon[athr]))
-        
+        docs.append(ForwardIndex.ForwardIndexing())
+        docs[-1].title[lexicon[athr]] = [0]
+        docs[-1].title[lexicon[srce]] = [1]
+
         # parse through each character in title and collect alphabetical words with size greater than 3
         t = obj[i]['title']
         word = ""
-        loc = 0
+        loc = 2
         for char in t:
             # append characters is character is alphabet
             if char.isalpha():
@@ -45,9 +49,9 @@ def updateLexicon(obj):
                     lexicon[word] = lexicon[(list(lexicon)[-1])] + 1
                 wid = lexicon[word]
                 # add the word along with its location if the word exists in title
-                if wid not in docs[i].title:  # use -1 instead of i to get access to last document
-                    docs[i].title[wid] = []
-                docs[i].title[wid].append(loc)
+                if wid not in docs[-1].title:
+                    docs[-1].title[wid] = []
+                docs[-1].title[wid].append(loc)
                 loc += 1
                 word = ""
 
@@ -68,9 +72,9 @@ def updateLexicon(obj):
                 if word not in lexicon:
                     lexicon[word] = lexicon[list(lexicon)[-1]] + 1
                 wid = lexicon[word]
-                if wid not in docs[i].content:
-                    docs[i].content[wid] = []
-                docs[i].content[wid].append(loc)
+                if wid not in docs[-1].content:
+                    docs[-1].content[wid] = []
+                docs[-1].content[wid].append(loc)
                 loc += 1
                 word = ""
 
@@ -104,17 +108,7 @@ def createInvertedIndex():
                 hits += len(docs[i].content[wid])
                 rank += hits * 3
                 flag = True
-            # if the word in author calculate hits and rank
-            if wid == docs[i].author:
-                hits += 1
-                rank += 150
-                flag = True
-            # if the word in source calculate hits and rank
-            if wid == docs[i].source:
-                hits += 1
-                rank += 100
-                flag = True
-            if flag:
+            if flag:    # can be checked if rank = 0
                 # if flag is true append the docId, rank and hits for that word
                 invertedIndex[wid].append(ForwardIndex.Hits(i, rank, hits))
             flag = False
@@ -128,15 +122,15 @@ def createInvertedIndex():
 snow_stemmer = SnowballStemmer(language='english')
 cwd = os.getcwd()
 docs = []
-lexicon = {'google': 0}
-files = [one for one in os.listdir(cwd) if one.endswith('.json')]
+lexicon = {'told': 0}
+files = [one for one in os.listdir(cwd) if one.endswith('.json')]  # get all json files in current working directory
 start_time = time.time()
+# update lexicon, forward index and inverted index for every document
 for z in files:
     myjsonfile = open(z, 'r')
     jsondata = myjsonfile.read()
     obj = json.loads(jsondata)
     myjsonfile.close()
     updateLexicon(obj)
-
 createInvertedIndex()
 print("time:", time.time() - start_time, " seconds")

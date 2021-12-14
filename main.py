@@ -1,6 +1,7 @@
 import json  # how to load json files
 import pickle
 import re
+import os
 import time
 import nltk
 from nltk import word_tokenize
@@ -8,213 +9,128 @@ from nltk.corpus import stopwords
 from pathlib import Path
 import ForwardIndex
 from nltk.stem.snowball import SnowballStemmer
+import time
+import string
 
 
-# updates lexicon taken from Lexicon.pkl and restore the new lexicon in Lexicon.pkl
 def updateLexicon(obj):
-    lexicon = {}
-    together = []
-
-    # compile the regex so every character that is not a word or a space will be removed
-    regex = re.compile(r"[^\w\s]")
-
-    start = time.time()
+    # parse through every article in each document
     for i in range(len(obj)):
-        # convert title and content to lowercase
-        obj[i]['title'] = obj[i]['title'].lower()
-        obj[i]['content'] = obj[i]['content'].lower()
+        # add author and source of article to forward index title
+        srce = obj[i]['source'].lower()
+        srce = snow_stemmer.stem(srce)
+        if srce not in lexicon:
+            lexicon[srce] = lexicon[(list(lexicon)[-1])] + 1
+        athr = obj[i]['author'].lower()
+        athr = snow_stemmer.stem(athr)
+        if athr not in lexicon:
+            lexicon[athr] = lexicon[(list(lexicon)[-1])] + 1
+        docs.append(ForwardIndex.ForwardIndexing())
+        docs[-1].title[lexicon[athr]] = [0]
+        docs[-1].title[lexicon[srce]] = [1]
 
-        # get the title in the line variable and apply regex
-        line = obj[i]['title']
-        obj[i]['title'] = ""
-        line = regex.sub(' ', line)
-        # remove punctuations from title and content
-        # re-intialize the title word by word from line
-        for word in line.split():
-            if not word.isdigit():
-                obj[i]['title'] += word
-                obj[i]['title'] += " "
+        # parse through each character in title and collect alphabetical words with size greater than 3
+        t = obj[i]['title']
+        word = ""
+        loc = 2
+        for char in t:
+            # append characters is character is alphabet
+            if char.isalpha():
+                word += char
+            else:
+                # if word size is less than 3 then discharge the word and start with new word
+                if len(word) <= 3:
+                    word = ""
+                    continue
+                word = word.lower()  # convert word to lower case
+                word = snow_stemmer.stem(word)  # perform stemming on the word
+                # if word is not in lexicon then add the word to lexicon with 'word id = word_id of last element in dictionary + 1'
+                if word not in lexicon:
+                    lexicon[word] = lexicon[(list(lexicon)[-1])] + 1
+                wid = lexicon[word]
+                # add the word along with its location if the word exists in title
+                if wid not in docs[-1].title:
+                    docs[-1].title[wid] = []
+                docs[-1].title[wid].append(loc)
+                loc += 1
+                word = ""
 
-        # get the content in the line variable and apply regex
-        line = obj[i]['content']
-        obj[i]['content'] = ""
-        line = regex.sub(' ', line)
-        # remove punctuations from title and content
-        # re-intialize the content word by word from line
-        for word in line.split():
-            if not word.isdigit():
-                obj[i]['content'] += word
-                obj[i]['content'] += " "
+        # perform the same operation with content data of the article
+        c = obj[i]['content']
+        word = ""
+        loc = 0
+        for char in c:
+            if char.isalpha():
+                word += char
+            else:
+                if len(word) <= 3:
+                    word = ""
+                    continue
+                word = word.lower()
 
-        # words are tokenized and stemming removed
-        together.extend([snow_stemmer.stem(t) for t in word_tokenize(obj[i]['title'])])
-        together.extend([snow_stemmer.stem(t) for t in word_tokenize(obj[i]['content'])])
+                word = snow_stemmer.stem(word)
+                if word not in lexicon:
+                    lexicon[word] = lexicon[list(lexicon)[-1]] + 1
+                wid = lexicon[word]
+                if wid not in docs[-1].content:
+                    docs[-1].content[wid] = []
+                docs[-1].content[wid].append(loc)
+                loc += 1
+                word = ""
 
-    # remove duplicates
-    together = set(together)
-    # remove stopwords
-    together = [word for word in together if not word in stopwords.words('english')]
-
-    print(time.time() - start)
-    print("done")
-    # add words and word_ID to lexicon
-    for ii, wdd in enumerate(together):
-        lexicon[wdd] = ii
-
-    # create file if it don't exists and add Lexicon to the file
-    if not Path('Lexicon.pkl').is_file():
-        a_file = open("Lexicon.pkl", "wb")
-        pickle.dump(lexicon, a_file)
-        a_file.close()
-    # if file already exists then add unique elements of new lexicon to new lexicon
-    else:
-        a_file = open("Lexicon.pkl", "rb")
-        previous = pickle.load(a_file)
-        a_file.close()
-        for keywd, valID in lexicon.items():
-            if keywd not in previous:
-                previous[keywd] = valID
-        a_file = open("Lexicon.pkl", "wb")
-        pickle.dump(previous, a_file)
-        a_file.close()
-    forwardI(obj)
-
-
-# builds forward indexing
-def forwardI(obj):
-    # read lexicon
-    s = time.time()
-    a_file = open("Lexicon.pkl", "rb")
-    lexicon = pickle.load(a_file)
+    # save lexicon in a file
+    a_file = open("Lexicon.pkl", "wb")
+    pickle.dump(lexicon, a_file)
     a_file.close()
-    print(time.time() - s)
-    docs = []  # docs will store each article's detail
-    n = len(obj)
-    for i in range(n):
-        docs.append(ForwardIndex.ForwardIndexing(obj[i]['source'],
-                                                 obj[i]['author']))  # append author and source of the article to docs
-
-        # store words and their locations in an article's title
-        tltk = word_tokenize(obj[i]['title'])
-        for loc, wd in enumerate(tltk):
-            wd = snow_stemmer.stem(wd)
-            if wd in lexicon:
-                wids = lexicon[wd]
-                if wids not in docs[i].title:
-                    docs[i].title[wids] = []
-                docs[i].title[wids].append(loc)
-
-        # store words and their locations in an article's content
-        wdtk = word_tokenize(obj[i]['content'])
-        for loc, wd in enumerate(wdtk):
-            wd = snow_stemmer.stem(wd)
-            if wd in lexicon:
-                wids = lexicon[wd]
-                if wids not in docs[i].content:  # changed
-                    docs[i].content[wids] = []
-                docs[i].content[wids].append(loc)
-
-    # if forward indexing file don't exist then create it and add the article details to it
-    if not Path('fwdix.pkl').is_file():
-        a_file = open("fwdix.pkl", "wb")
-        pickle.dump(docs, a_file)
-        a_file.close()
-    # if file already exists then append new article details to previous ones
-    else:
-        a_file = open("fwdix.pkl", "rb")
-        previous = pickle.load(a_file)
-        a_file.close()
-        previous.extend(docs)
-        a_file = open("fwdix.pkl", "wb")
-        pickle.dump(previous, a_file)
-        a_file.close()
-    createInvertedIndex()
 
 
 def createInvertedIndex():
-    # load the lexicon
-    a_file = open("Lexicon.pkl", "rb")
-    lexicon = pickle.load(a_file)
-    a_file.close()
-
-    # load the forward index
-    a_file = open("fwdix.pkl", 'rb')
-    fwdIdx = pickle.load(a_file)
-    a_file.close()
-
     # dict to store inverted index
     invertedIndex = {}
 
     for wd in lexicon:
         wid = lexicon[wd]
-        # if word is not in the inverted idex create an empty list for it
-        if wid not in invertedIndex:
+        # if word is not in the inverted index create an empty list for it
+        if wid not in invertedIndex: # can be removed ******
             invertedIndex[wid] = []
-        for i in range(len(fwdIdx)):
+        for i in range(len(docs)):
             rank = 0
             hits = 0
             # flag indicates if a word has been found in a particular document
             flag = False
             # if the word in title calculate hits and rank
-            if wid in fwdIdx[i].title:
-                hits += len(fwdIdx[i].title[wid])
+            if wid in docs[i].title:
+                hits += len(docs[i].title[wid])
                 rank += hits * 5
                 flag = True
             # if the word in content calculate hits and rank
-            if wid in fwdIdx[i].content:
-                hits += len(fwdIdx[i].content[wid])
+            if wid in docs[i].content:
+                hits += len(docs[i].content[wid])
                 rank += hits * 3
                 flag = True
-            # if the word in author calculate hits and rank
-            if wid == fwdIdx[i].author:
-                hits += 1
-                rank += 150
-                flag = True
-            # if the word in source calculate hits and rank
-            if wid == fwdIdx[i].source:
-                hits += 1
-                rank += 100
-                flag = True
-            if flag:
+            if flag:    # can be checked if rank = 0
                 # if flag is true append the docId, rank and hits for that word
                 invertedIndex[wid].append(ForwardIndex.Hits(i, rank, hits))
             flag = False
-    # create file if it don't exists and add invertedIndex to the file
-    if not Path('InvertedIndex.pkl').is_file():
-        a_file = open("InvertedIndex.pkl", "wb")
-        pickle.dump(invertedIndex, a_file)
-        a_file.close()
-    # if file already exists then add unique elements of new invertedIndex
-    else:
-        a_file = open("InvertedIndex.pkl", "rb")
-        previous = pickle.load(a_file)
-        a_file.close()
-        previous.extend(invertedIndex)
-        a_file = open("InvertedIndex.pkl", "wb")
-        pickle.dump(previous, a_file)
-        a_file.close()
+
+    # create file and add invertedIndex to the file
+    a_file = open("InvertedIndex.pkl", "wb")
+    pickle.dump(invertedIndex, a_file)
+    a_file.close()
 
 
 snow_stemmer = SnowballStemmer(language='english')
-
-myjsonfile = open('21stcenturywire.json', 'r')
-jsondata = myjsonfile.read()
-obj = json.loads(jsondata)
-myjsonfile.close()
-
-updateLexicon(obj)
-
-l_file = open("Lexicon.pkl", 'rb')
-output = pickle.load(l_file)
-print(output)
-
-# f_file = open("fwdix.pkl", "rb")
-# fwdIndx = pickle.load(f_file)
-# f_file.close()
-#
-# i_file = open("InvertedIndex.pkl", "rb")
-# invtdIndx = pickle.load(i_file)
-# i_file.close()
-#
-# print(fwdIndx[139].content)
-# print(invtdIndx[5538][1].rank)
+cwd = os.getcwd()
+docs = []
+lexicon = {'told': 0}
+files = [one for one in os.listdir(cwd) if one.endswith('.json')]  # get all json files in current working directory
+start_time = time.time()
+# update lexicon, forward index and inverted index for every document
+for z in files:
+    myjsonfile = open(z, 'r')
+    jsondata = myjsonfile.read()
+    obj = json.loads(jsondata)
+    myjsonfile.close()
+    updateLexicon(obj)
+createInvertedIndex()
+print("time:", time.time() - start_time, " seconds")

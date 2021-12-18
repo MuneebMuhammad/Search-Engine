@@ -59,9 +59,11 @@ def create_forwardindex(fwdix, single):
     for wid, hits in fwdix.items():
         binid = wid // 500  # div of wid by 500 will be our barrelID in which the word id will be stored
         newid = wid % 500 # wid mod 500 is the difference from the smallest wordID in a barrel
+        if binid not in barrels:
+            barrels[binid] = open('ForwardIndex/'+str(binid)+'.txt', 'w')  # create barrel if don't exists
+
         # write documentID, wordID and hits for a word in a document in its corresponding barrel
-        with open('ForwardIndex/'+str(binid)+'.txt', 'a') as addobj:
-            addobj.write(str(len(docid)-1) + "#" + str(newid) + "#" + str(hits) + "\n")
+        barrels[binid].write(str(len(docid)-1) + "#" + str(newid) + "#" + str(hits) + "\n")
 
 
 # parse through articles then update lexicon and Forward Index
@@ -148,6 +150,7 @@ stop_words = pickle.load(a_file)
 a_file.close()
 
 docid = []
+barrels = {}
 
 cwd = os.getcwd()
 cwd += '/newsdata'
@@ -160,6 +163,7 @@ for f in files:
     fileobj = json.loads(jsondata)
     myjsonfile.close()  # *******add the first word of lexicon here
     update_data(fileobj)
+    print(f)
 
 # save lexicon
 a_file = open("Lexicon.pkl", "wb")
@@ -171,6 +175,10 @@ a_file = open("docid.pkl", "wb")
 pickle.dump(docid, a_file)
 a_file.close()
 print("time:", time.time()-start_time, "seconds")
+
+# closing forward index files
+for k in barrels:
+    barrels[k].close()
 
 create_invertedindex()
 

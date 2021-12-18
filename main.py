@@ -66,6 +66,7 @@ def create_forwardindex(fwdix, single):
 
 # parse through articles then update lexicon and Forward Index
 def update_data(obj):
+    global lx_id
     # parse through each article and get words
     for i in range(len(obj)):
         fx = {}
@@ -85,7 +86,8 @@ def update_data(obj):
                 word = snow_stemmer.stem(word)
                 # if word is not in lexicon then this word is added to lexicon with new word-id and '0' word count
                 if word not in lexicon:
-                    lexicon[word] = [lexicon[list(lexicon)[-1]][0] +1, 0]
+                    lexicon[word] = [lx_id, 0]
+                    lx_id += 1
 
                 wid = lexicon[word][0]
 
@@ -116,7 +118,8 @@ def update_data(obj):
                 word = snow_stemmer.stem(word)
                 # if word is not in lexicon then this word is added to lexicon with new word-id and '0' word count
                 if word not in lexicon:
-                    lexicon[word] = [lexicon[list(lexicon)[-1]][0] + 1, 0]
+                    lexicon[word] = [lx_id, 0]
+                    lx_id += 1
 
                 wid = lexicon[word][0]
 
@@ -135,8 +138,8 @@ def update_data(obj):
 
 # set first word in lexicon. first element in array is word id second element is number of documents where this word
 # exists
-lexicon = {'told': [0, 0]}
-
+lexicon = {}
+lx_id = 0
 snow_stemmer = SnowballStemmer(language='english')
 
 # get stopwords

@@ -1,11 +1,57 @@
 import json  # how to load json files
 import pickle
-import os
+import os.path
 from pathlib import Path
-import ForwardIndex
 from nltk.stem.snowball import SnowballStemmer
-from nltk.corpus import stopwords
 import time
+import itertools
+import numpy as np
+from ast import literal_eval
+
+
+snow_stemmer = SnowballStemmer(language='english')
+lexicon = {}
+# get stopwords
+a_file = open("stopwords.pkl", "rb")
+stop_words = pickle.load(a_file)
+a_file.close()
+
+
+def oneWordSearch(word):
+    word = word.lower()
+    if word in stop_words:
+        print("no match for this word")
+        return
+    else:
+        word = snow_stemmer.stem(word)
+        if word not in lexicon:
+            print("no match for this word")
+            return
+        else:
+            wid = lexicon[word][0]
+            barrelid = wid // 500
+            offsetid = wid % 500
+            if offsetid == 0:
+                start = 0
+                end = accumulativefreq[barrelid][offsetid]
+            else:
+                start = accumulativefreq[barrelid][offsetid-1]
+                end = accumulativefreq[barrelid][offsetid]
+
+            sortrank = []
+            for line in itertools.islice(filestreams[barrelid], start, end):
+                did, _, hits = line.split('#')
+                hits = np.array(literal_eval(hits))
+                rank = int(np.sum(hits, axis=0)[0])
+                sortrank.append([int (did), rank])
+
+            sortrank = np.array(sortrank)
+            orderrank = sortrank[sortrank[:, 1].argsort()]
+            orderrank = orderrank[-10:]
+            print("time:", time.time() - start_time)
+            for i in range(9, -1, -1):
+                print(docids[orderrank[i][0]], orderrank[i])
+
 
 
 # create inverted index from the forward index barrles
@@ -93,7 +139,7 @@ def update_data(obj):
 
                 wid = lexicon[word][0]
 
-                hit = [5, loc] # make hit: '5' shows fancy hit, also add location of word in article
+                hit = [5, loc] # make hit: '1' shows fancy hit, also add location of word in article
                 loc += 1
                 # if the word is found first time in an article then add its hit to fx and increment that word frequency
                 if wid not in fx:
@@ -125,7 +171,7 @@ def update_data(obj):
 
                 wid = lexicon[word][0]
 
-                # find hit. '2' shows plain hit, also add location of word in article
+                # find hit. '0' shows plain hit, also add location of word in article
                 hit = [2, loc]
                 loc += 1
                 if wid not in fx:
@@ -137,49 +183,67 @@ def update_data(obj):
 
         create_forwardindex(fx, obj[i])  # create forward index from fx dictionary
 
+if not os.path.exists('Lexicon.pkl'):
+    lx_id = 0
 
-# set first word in lexicon. first element in array is word id second element is number of documents where this word
-# exists
-lexicon = {}
-lx_id = 0
-snow_stemmer = SnowballStemmer(language='english')
+    docid = []
+    barrels = {}
 
-# get stopwords
-a_file = open("stopwords.pkl", "rb")
-stop_words = pickle.load(a_file)
-a_file.close()
+    cwd = os.getcwd()
+    cwd += '/newsdata'
+    start_time = time.time()
+    files = [o for o in os.listdir(cwd) if o.endswith('.json')]   # get all json files in newsdata directory
+    # parse through the each json file and update lexicon and forwardIndex
+    for f in files:
+        myjsonfile = open(cwd+'/'+f, 'r')
+        jsondata = myjsonfile.read()
+        fileobj = json.loads(jsondata)
+        myjsonfile.close()  # *******add the first word of lexicon here
+        update_data(fileobj)
+        print(f)
 
-docid = []
-barrels = {}
+    # save lexicon
+    a_file = open("Lexicon.pkl", "wb")
+    pickle.dump(lexicon, a_file)
+    a_file.close()
 
-cwd = os.getcwd()
-cwd += '/newsdata'
-start_time = time.time()
-files = [o for o in os.listdir(cwd) if o.endswith('.json')]   # get all json files in newsdata directory
-# parse through the each json file and update lexicon and forwardIndex
-for f in files:
-    myjsonfile = open(cwd+'/'+f, 'r')
-    jsondata = myjsonfile.read()
-    fileobj = json.loads(jsondata)
-    myjsonfile.close()  # *******add the first word of lexicon here
-    update_data(fileobj)
-    print(f)
+    # save docIds
+    a_file = open("docid.pkl", "wb")
+    pickle.dump(docid, a_file)
+    a_file.close()
 
-# save lexicon
-a_file = open("Lexicon.pkl", "wb")
-pickle.dump(lexicon, a_file)
-a_file.close()
+    # closing forward index files
+    for k in barrels:
+        barrels[k].close()
 
-# save docIds
-a_file = open("docid.pkl", "wb")
-pickle.dump(docid, a_file)
-a_file.close()
-print("time:", time.time()-start_time, "seconds")
+    create_invertedindex()
 
-# closing forward index files
-for k in barrels:
-    barrels[k].close()
+else:
 
-create_invertedindex()
+    filestreams = []
 
-print("time:", time.time()-start_time, "seconds")
+    # load lexicon
+    a_file = open("Lexicon.pkl", "rb")
+    lexicon = pickle.load(a_file)
+    a_file.close()
+
+    # load accumulative frequency of words
+    a_file = open("arr.pkl", "rb")
+    accumulativefreq = pickle.load(a_file)
+    a_file.close()
+
+    # load docid and its url
+    a_file = open("docid.pkl", "rb")
+    docids = pickle.load(a_file)
+    a_file.close()
+
+    # open file streams for all inverted index barrels
+    for i in range(len(accumulativefreq)):
+        filestreams.append(open("InvertedIndex/"+str(i)+".txt", "r"))
+
+    word = 'hello'
+    start_time = time.time()
+    oneWordSearch(word)
+
+    for i in range(len(accumulativefreq)):
+        filestreams[i].close()

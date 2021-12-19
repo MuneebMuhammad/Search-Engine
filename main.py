@@ -93,7 +93,7 @@ def update_data(obj):
 
                 wid = lexicon[word][0]
 
-                hit = [5, loc] # make hit: '1' shows fancy hit, also add location of word in article
+                hit = [5, loc] # make hit: '5' shows fancy hit, also add location of word in article
                 loc += 1
                 # if the word is found first time in an article then add its hit to fx and increment that word frequency
                 if wid not in fx:
@@ -125,7 +125,7 @@ def update_data(obj):
 
                 wid = lexicon[word][0]
 
-                # find hit. '0' shows plain hit, also add location of word in article
+                # find hit. '2' shows plain hit, also add location of word in article
                 hit = [2, loc]
                 loc += 1
                 if wid not in fx:

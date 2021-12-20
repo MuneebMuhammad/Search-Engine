@@ -1,11 +1,61 @@
 import json  # how to load json files
 import pickle
-import os
+import os.path
 from pathlib import Path
-import ForwardIndex
 from nltk.stem.snowball import SnowballStemmer
-from nltk.corpus import stopwords
 import time
+import itertools
+import numpy as np
+from ast import literal_eval
+
+
+snow_stemmer = SnowballStemmer(language='english')
+lexicon = {}
+# get stopwords
+a_file = open("stopwords.pkl", "rb")
+stop_words = pickle.load(a_file)
+a_file.close()
+
+
+# prints the urls sorted by rank for the gien word
+def oneWordSearch(word):
+    # convert word to standard form
+    word = word.lower()
+    if word in stop_words:
+        print("no match for this word")
+        return
+    else:
+        word = snow_stemmer.stem(word)
+        if word not in lexicon:
+            print("no match for this word")
+            return
+        else:
+            # get location of the word with the word-id.
+            wid = lexicon[word][0]
+            barrelid = wid // 500  # gives the barrel id
+            offsetid = wid % 500   # gives in which position of cumulative frequency array the word is placed
+            # get the start and end location in inverted index with the help of cumulative frequency
+            if offsetid == 0:
+                start = 0
+                end = accumulativefreq[barrelid][offsetid]
+            else:
+                start = accumulativefreq[barrelid][offsetid-1]
+                end = accumulativefreq[barrelid][offsetid]
+
+            sortrank = []
+            # parse through the lines from start to end and get rank and document id
+            for line in itertools.islice(filestreams[barrelid], start, end):
+                did, _, rank, _ = line.split('#')
+                # hits = np.array(literal_eval(hits))
+                # rank = int(np.sum(hits, axis=0)[0])
+                sortrank.append([int (did), int(rank)])
+            sortrank = np.array(sortrank)
+            orderrank = sortrank[sortrank[:, 1].argsort()]  # sort the ranks and document id on rank column
+            orderrank = orderrank[-10:]  # get 10 highest ranks
+            print("time:", time.time() - start_time)
+            for i in range(9, -1, -1):
+                print(docids[orderrank[i][0]], orderrank[i])
+
 
 
 # create inverted index from the forward index barrles
@@ -39,18 +89,21 @@ def create_invertedindex():
     # sort each barrel using counting sort and store in file
     for i in range(number_of_barrels + 1):
         sizeofbarrel = arr[i][-1]
-        listinverted = [[''] * 3 for sb in range(sizeofbarrel)]
+        listinverted = [[''] * 4 for sb in range(sizeofbarrel)]
         fobj = open('ForwardIndex/'+str(i) + '.txt', 'r')
         for line in fobj:
-            url, wid, hits = line.split('#')
+            url, wid, rank, hits = line.split('#')
             arr[i][int(wid)] -= 1
-            listinverted[arr[i][int(wid)]][0] = url
-            listinverted[arr[i][int(wid)]][2] = hits
-            listinverted[arr[i][int(wid)]][1] = wid
+            sortplace = arr[i][int(wid)]
+            listinverted[sortplace][0] = url
+            listinverted[sortplace][1] = wid
+            listinverted[sortplace][2] = rank
+            listinverted[sortplace][3] = hits
+
         fobj.close()
         with open('InvertedIndex/'+str(i) + '.txt', 'w') as wobj:
             for f in listinverted:
-                wobj.write(str(f[0] + '#' + f[1] + '#' + f[2]))
+                wobj.write(str(f[0] + '#' + f[1] + '#' + f[2] + '#' + f[3]))
 
 
 # divide words of one article into barrels according to wordID
@@ -62,8 +115,9 @@ def create_forwardindex(fwdix, single):
         if binid not in barrels:
             barrels[binid] = open('ForwardIndex/'+str(binid)+'.txt', 'w')  # create barrel if don't exists
 
-        # write documentID, wordID and hits for a word in a document in its corresponding barrel
-        barrels[binid].write(str(len(docid)-1) + "#" + str(newid) + "#" + str(hits) + "\n")
+        rank = int(np.sum(np.array(hits), axis=0)[0])  # calculate rank of one document and its one word
+        # write documentID, wordID, rank and hits for a word in a document in its corresponding barrel
+        barrels[binid].write(str(len(docid)-1) + "#" + str(newid) + "#" + str(rank) + "#" + str(hits) + "\n")
 
 
 # parse through articles then update lexicon and Forward Index
@@ -71,6 +125,10 @@ def update_data(obj):
     global lx_id
     # parse through each article and get words
     for i in range(len(obj)):
+        if obj[i]['url'] in url_check:
+            continue
+
+        url_check[obj[i]['url']] = 0
         fx = {}
         # get title from one article
         t = obj[i]['title']
@@ -137,49 +195,70 @@ def update_data(obj):
 
         create_forwardindex(fx, obj[i])  # create forward index from fx dictionary
 
+if not os.path.exists('Lexicon.pkl'):
+    lx_id = 0
+    doc_count = 0
+    docid = []
+    url_check = {}
+    barrels = {}
 
-# set first word in lexicon. first element in array is word id second element is number of documents where this word
-# exists
-lexicon = {}
-lx_id = 0
-snow_stemmer = SnowballStemmer(language='english')
+    cwd = os.getcwd()
+    cwd += '/newsdata'
+    start_time = time.time()
+    files = [o for o in os.listdir(cwd) if o.endswith('.json')]   # get all json files in newsdata directory
+    # parse through the each json file and update lexicon and forwardIndex
+    for f in files:
+        myjsonfile = open(cwd+'/'+f, 'r')
+        jsondata = myjsonfile.read()
+        fileobj = json.loads(jsondata)
+        myjsonfile.close()  
+        update_data(fileobj)
+        print(f)
 
-# get stopwords
-a_file = open("stopwords.pkl", "rb")
-stop_words = pickle.load(a_file)
-a_file.close()
+    # save lexicon
+    a_file = open("Lexicon.pkl", "wb")
+    pickle.dump(lexicon, a_file)
+    a_file.close()
 
-docid = []
-barrels = {}
+    # save docIds
+    a_file = open("docid.pkl", "wb")
+    pickle.dump(docid, a_file)
+    a_file.close()
 
-cwd = os.getcwd()
-cwd += '/newsdata'
-start_time = time.time()
-files = [o for o in os.listdir(cwd) if o.endswith('.json')]   # get all json files in newsdata directory
-# parse through the each json file and update lexicon and forwardIndex
-for f in files:
-    myjsonfile = open(cwd+'/'+f, 'r')
-    jsondata = myjsonfile.read()
-    fileobj = json.loads(jsondata)
-    myjsonfile.close()  # *******add the first word of lexicon here
-    update_data(fileobj)
-    print(f)
+    # closing forward index files
+    for k in barrels:
+        barrels[k].close()
 
-# save lexicon
-a_file = open("Lexicon.pkl", "wb")
-pickle.dump(lexicon, a_file)
-a_file.close()
+    create_invertedindex()
 
-# save docIds
-a_file = open("docid.pkl", "wb")
-pickle.dump(docid, a_file)
-a_file.close()
-print("time:", time.time()-start_time, "seconds")
+    print("time:", time.time() - start_time)
+else:
 
-# closing forward index files
-for k in barrels:
-    barrels[k].close()
+    filestreams = []
 
-create_invertedindex()
+    # load lexicon
+    a_file = open("Lexicon.pkl", "rb")
+    lexicon = pickle.load(a_file)
+    a_file.close()
 
-print("time:", time.time()-start_time, "seconds")
+    # load accumulative frequency of words
+    a_file = open("arr.pkl", "rb")
+    accumulativefreq = pickle.load(a_file)
+    a_file.close()
+
+    # load docid and its url
+    a_file = open("docid.pkl", "rb")
+    docids = pickle.load(a_file)
+    a_file.close()
+
+    # open file streams for all inverted index barrels
+    for i in range(len(accumulativefreq)):
+        filestreams.append(open("InvertedIndex/"+str(i)+".txt", "r"))
+
+    word = 'lockdown'
+    start_time = time.time()
+    oneWordSearch(word)  # search for the word
+
+    # close files
+    for i in range(len(accumulativefreq)):
+        filestreams[i].close()

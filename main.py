@@ -21,41 +21,38 @@ a_file.close()
 def oneWordSearch(word):
     # convert word to standard form
     word = word.lower()
-    if word in stop_words:
+
+    word = snow_stemmer.stem(word)
+    if word not in lexicon:
         print("no match for this word")
         return
     else:
-        word = snow_stemmer.stem(word)
-        if word not in lexicon:
-            print("no match for this word")
-            return
+        # get location of the word with the word-id.
+        wid = lexicon[word][0]
+        barrelid = wid // 500  # gives the barrel id
+        offsetid = wid % 500   # gives in which position of cumulative frequency array the word is placed
+        # get the start and end location in inverted index with the help of cumulative frequency
+        if offsetid == 0:
+            start = 0
+            end = accumulativefreq[barrelid][offsetid]
         else:
-            # get location of the word with the word-id.
-            wid = lexicon[word][0]
-            barrelid = wid // 500  # gives the barrel id
-            offsetid = wid % 500   # gives in which position of cumulative frequency array the word is placed
-            # get the start and end location in inverted index with the help of cumulative frequency
-            if offsetid == 0:
-                start = 0
-                end = accumulativefreq[barrelid][offsetid]
-            else:
-                start = accumulativefreq[barrelid][offsetid-1]
-                end = accumulativefreq[barrelid][offsetid]
+            start = accumulativefreq[barrelid][offsetid-1]
+            end = accumulativefreq[barrelid][offsetid]
 
-            sortrank = []
-            # parse through the lines from start to end and get rank and document id
-            for line in itertools.islice(filestreams[barrelid], start, end):
-                did, _, rank, _ = line.split('#')
-                # hits = np.array(literal_eval(hits))
-                # rank = int(np.sum(hits, axis=0)[0])
-                sortrank.append([int (did), int(rank)])
-            sortrank = np.array(sortrank)
-            orderrank = sortrank[sortrank[:, 1].argsort()]  # sort the ranks and document id on rank column
-            orderrank = orderrank[-10:]  # get 10 highest ranks
-            print("time:", time.time() - start_time)
-            for i in range(9, -1, -1):
+        sortrank = []
+        # parse through the lines from start to end and get rank and document id
+        for line in itertools.islice(filestreams[barrelid], start, end):
+            did, _, rank, _ = line.split('#')
+            sortrank.append([int (did), int(rank)])
+        sortrank = np.array(sortrank)
+        orderrank = sortrank[sortrank[:, 1].argsort()]  # sort the ranks and document id on rank column
+        print("time:", time.time() - start_time)
+        if len(orderrank) > 10:
+            for i in range(-1, -10, -1):
                 print(docids[orderrank[i][0]], orderrank[i])
-
+        else:
+            for i in range(len(orderrank) -1, -1, -1):
+                print(docids[orderrank[i][0]], orderrank[i])
 
 
 # create inverted index from the forward index barrles
@@ -211,7 +208,7 @@ if not os.path.exists('Lexicon.pkl'):
         myjsonfile = open(cwd+'/'+f, 'r')
         jsondata = myjsonfile.read()
         fileobj = json.loads(jsondata)
-        myjsonfile.close()  
+        myjsonfile.close()
         update_data(fileobj)
         print(f)
 

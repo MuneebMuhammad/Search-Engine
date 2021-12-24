@@ -18,7 +18,7 @@ a_file.close()
 
 
 # prints the urls sorted by rank for the gien word
-def oneWordSearch(word):
+def WordSearch(word):
     # convert word to standard form
     word = word.lower()
 
@@ -29,8 +29,8 @@ def oneWordSearch(word):
     else:
         # get location of the word with the word-id.
         wid = lexicon[word][0]
-        barrelid = wid // 500  # gives the barrel id
-        offsetid = wid % 500   # gives in which position of cumulative frequency array the word is placed
+        barrelid = wid // 400  # gives the barrel id
+        offsetid = wid % 400   # gives in which position of cumulative frequency array the word is placed
         # get the start and end location in inverted index with the help of cumulative frequency
         if offsetid == 0:
             start = 0
@@ -57,8 +57,8 @@ def oneWordSearch(word):
 
 # create inverted index from the forward index barrles
 def create_invertedindex():
-    number_of_barrels = lexicon[list(lexicon)[-1]][0] // 500
-    arr = [[0] * 500 for a in range(number_of_barrels + 1)]  # stores cumulative frequency of each barrel
+    number_of_barrels = lexicon[list(lexicon)[-1]][0] // 400
+    arr = [[0] * 400 for a in range(number_of_barrels + 1)]  # stores cumulative frequency of each barrel
     i = 0
     j = 0
     # get the cumulative frequency of words in each barrel
@@ -69,7 +69,7 @@ def create_invertedindex():
         else:
             arr[j][i] = arr[j][i - 1] + lexicon[k][1]
             i += 1
-            if i == 500:
+            if i == 400:
                 i = 0
                 j += 1
     last = 0
@@ -107,8 +107,8 @@ def create_invertedindex():
 def create_forwardindex(fwdix, single):
     docid.append(single['url'])
     for wid, hits in fwdix.items():
-        binid = wid // 500  # div of wid by 500 will be our barrelID in which the word id will be stored
-        newid = wid % 500 # wid mod 500 is the difference from the smallest wordID in a barrel
+        binid = wid // 400  # div of wid by 400 will be our barrelID in which the word id will be stored
+        newid = wid % 400 # wid mod 400 is the difference from the smallest wordID in a barrel
         if binid not in barrels:
             barrels[binid] = open('ForwardIndex/'+str(binid)+'.txt', 'w')  # create barrel if don't exists
 
@@ -180,13 +180,13 @@ def update_data(obj):
 
                 wid = lexicon[word][0]
 
-                # find hit. '2' shows plain hit, also add location of word in article
-                hit = [2, loc]
+                # find hit. '1' shows plain hit, also add location of word in article
+                hit = [1, loc]
                 loc += 1
                 if wid not in fx:
                     lexicon[word][1] += 1
                     fx[wid] = [hit]
-                else:
+                elif len(fx[wid]) <=6:  # more than 6 hits in an article is not allowed
                     fx[wid].append(hit)
                 word = ""
 
@@ -252,9 +252,9 @@ else:
     for i in range(len(accumulativefreq)):
         filestreams.append(open("InvertedIndex/"+str(i)+".txt", "r"))
 
-    word = 'lockdown'
+    word = 'hello'
     start_time = time.time()
-    oneWordSearch(word)  # search for the word
+    WordSearch(word)  # search for the word
 
     # close files
     for i in range(len(accumulativefreq)):

@@ -138,8 +138,19 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-/InvertedIndex.pkl
-/fwdix.pkl
 /Lexicon.pkl
 /.idea
-/21stcenturywire.json
+/newsdata/21stcenturywire.json
+/ForwardIndex
+/InvertedIndex
+/ageofautism.json
+/docid.pkl
+/arr.pkl
+/newsdata/businessinsider.json
+/newsdata/cbsnews.json
+/newsdata/drudgereport.json
+/newsdata/eveningstandard.json
+/newsdata/theguardianuk.json
+/newsdata/theindependent.json
+/newsdata/washingtonpost.json
+/abcnews.json

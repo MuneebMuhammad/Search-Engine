@@ -137,10 +137,14 @@ def WordSearch(word):
         print("No match for the search!")
     elif final_length <= 11:
         for i in range(1, final_length):
-            print(docids[final_list[i][0]], final_list[i])
+            print(docids[final_list[i][0]][0], final_list[i])
+            print(docids[final_list[i][0]][1])
+            print('')
     else:
         for i in range(1, 11):
-            print(docids[final_list[i][0]], final_list[i])
+            print(docids[final_list[i][0]][0], final_list[i])
+            print(docids[final_list[i][0]][1])
+            print('')
 
     return final_list
 
@@ -195,7 +199,7 @@ def create_invertedindex():
 
 # divide words of one article into barrels according to wordID
 def create_forwardindex(fwdix, single):
-    docid.append(single['url'])
+    docid.append([single['url'], single['title']])
     for wid, hits in fwdix.items():
         binid = wid // 400  # div of wid by 400 will be our barrelID in which the word id will be stored
         newid = wid % 400 # wid mod 400 is the difference from the smallest wordID in a barrel
@@ -285,7 +289,7 @@ def update_data(obj):
 if not os.path.exists('Lexicon.pkl'):
     lx_id = 0
     doc_count = 0
-    docid = []
+    docid = [[]]
     url_check = {}
     barrels = {}
 

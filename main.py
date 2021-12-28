@@ -29,6 +29,7 @@ def proximity_rank(final_list, fixdata, fixrank):
         nums = len(fix)
         # in each document apply cartesian product of every unique word in the search
         for i in range(nums - 1):
+
             for j in range(i + 1, nums):
                 carts = list(itertools.product(fix[i], fix[j]))
                 tmin = 10000
@@ -44,18 +45,25 @@ def proximity_rank(final_list, fixdata, fixrank):
                         if abs(k[0][1] - k[1][1]) < cmin:
                             cmin = abs(k[0][1] - k[1][1])
                 # give rank according to the shortest distance between two words
+
                 if tmin <= 3:
+                    print("t3")
                     fixrank[d_id] += 20
                 elif tmin <= 5:
+                    print("t5")
                     fixrank[d_id] += 15
                 elif tmin <= 8:
+                    print("t8")
                     fixrank[d_id] += 5
 
                 if cmin <= 3:
+                    print("c3")
                     fixrank[d_id] += 10
                 elif cmin <= 5:
+                    print("c5")
                     fixrank[d_id] += 5
                 elif cmin <= 8:
+                    print("c8")
                     fixrank[d_id] += 3
 
     # sort the rank and append in final_list
@@ -98,10 +106,12 @@ def WordSearch(word):
             start = accumulativefreq[barrelid][offsetid - 1]
             end = accumulativefreq[barrelid][offsetid]
 
+        quality_rank = int(100000/lexicon[wd][1]) # this assigns weights to words based on how many documents they occur
         # parse through the lines in the inverted index and get rank and hit list
         for line in itertools.islice(filestreams[barrelid], start, end):
             did, _, rank, hits = line.split('#')
             did, rank, hits = int(did), int(rank), literal_eval(hits)
+            rank += quality_rank
 
             # set priority of documents based on how many words in search words occur in the document
             if did in thirdfix:
@@ -122,6 +132,9 @@ def WordSearch(word):
             else:
                 firstfix[did] = [hits]
                 firstrank[did] = rank
+
+        # go to the start of the inverted file for another word that may lie in the same barrel
+        filestreams[barrelid].seek(0)
 
     final_list = np.array([[-1, -1]])  # stores the final sorted list of document-ids and rank
 
@@ -288,7 +301,7 @@ def update_data(obj):
 
                 wid = lexicon[word][0]
 
-                hit = [5, loc]  # make hit: '5' shows fancy hit, also add location of word in article
+                hit = [10, loc]  # make hit: '10' shows fancy hit, also add location of word in article
                 loc += 1
                 # if the word is found first time in an article then add its hit to fx and increment that word frequency
                 if wid not in fx:
@@ -367,6 +380,7 @@ if not os.path.exists('Lexicon.pkl'):
 
     print("time:", time.time() - start_time)
 else:
+    #update_invertedindex()
 
     filestreams = []
 
@@ -389,10 +403,9 @@ else:
     for i in range(len(accumulativefreq)):
         filestreams.append(open("InvertedIndex/" + str(i) + ".txt", "r"))
 
-    word = 'ali'
+    word = 'covid deaths'
     start_time = time.time()
     final_list = WordSearch(word)  # search for the word
-    print(time.time() - start_time)
     # close files
     for i in range(len(accumulativefreq)):
         filestreams[i].close()

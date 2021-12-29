@@ -38,32 +38,25 @@ def proximity_rank(final_list, fixdata, fixrank):
                 for k in carts:
                     if k[0][0] != k[1][0]:
                         continue
-                    if k[0][0] == 5:
+                    if k[0][0] == 10:
                         if abs(k[0][1] - k[1][1]) < tmin:
                             tmin = abs(k[0][1] - k[1][1])
-                    if k[0][0] == 2:
+                    if k[0][0] == 1:
                         if abs(k[0][1] - k[1][1]) < cmin:
                             cmin = abs(k[0][1] - k[1][1])
                 # give rank according to the shortest distance between two words
-
                 if tmin <= 3:
-                    print("t3")
                     fixrank[d_id] += 20
                 elif tmin <= 5:
-                    print("t5")
                     fixrank[d_id] += 15
                 elif tmin <= 8:
-                    print("t8")
                     fixrank[d_id] += 5
 
                 if cmin <= 3:
-                    print("c3")
                     fixrank[d_id] += 10
                 elif cmin <= 5:
-                    print("c5")
                     fixrank[d_id] += 5
                 elif cmin <= 8:
-                    print("c8")
                     fixrank[d_id] += 3
 
     # sort the rank and append in final_list
@@ -289,7 +282,7 @@ def update_data(obj):
             if cr.isalpha():
                 word += cr
             else:
-                if len(word) <= 2 or word in stop_words:
+                if len(word) <= 2 or word in stop_words:  # ******** use word.lower() before this
                     word = ""
                     continue
                 word = word.lower()
@@ -374,7 +367,8 @@ if not os.path.exists('Lexicon.pkl'):
     pickle.dump(docid, a_file)
     a_file.close()
 
-    # closing forward index files
+    # closing forward index files       *********
+
 
     create_invertedindex()
 
@@ -403,9 +397,10 @@ else:
     for i in range(len(accumulativefreq)):
         filestreams.append(open("InvertedIndex/" + str(i) + ".txt", "r"))
 
-    word = 'covid deaths'
+    word = 'Which books should I read'
     start_time = time.time()
     final_list = WordSearch(word)  # search for the word
     # close files
     for i in range(len(accumulativefreq)):
         filestreams[i].close()
+

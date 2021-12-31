@@ -46,18 +46,18 @@ def proximity_rank(final_list, fixdata, fixrank):
                             cmin = abs(k[0][1] - k[1][1])
                 # give rank according to the shortest distance between two words
                 if tmin <= 3:
-                    fixrank[d_id] += 20
+                    fixrank[d_id] += 25
                 elif tmin <= 5:
-                    fixrank[d_id] += 15
+                    fixrank[d_id] += 20
                 elif tmin <= 8:
-                    fixrank[d_id] += 5
+                    fixrank[d_id] += 15
 
                 if cmin <= 3:
-                    fixrank[d_id] += 10
+                    fixrank[d_id] += 15
                 elif cmin <= 5:
-                    fixrank[d_id] += 5
+                    fixrank[d_id] += 10
                 elif cmin <= 8:
-                    fixrank[d_id] += 3
+                    fixrank[d_id] += 5
 
     # sort the rank and append in final_list
     nprank = np.array(list(fixrank.items()))
@@ -83,7 +83,7 @@ def WordSearch(word):
     # convert word to standard form and only include unique words which are in lexicon
     all_words = word.split(" ")
     all_words = [snow_stemmer.stem(wd.lower()) for wd in all_words]
-    main_words = [wd for wd in all_words if wd in lexicon and wd not in stop_words]
+    main_words = [wd for wd in all_words if wd in lexicon]
     main_words = list(dict.fromkeys(main_words))
     # parse through each word and select documents in which these words occur. Priority is also set on how many words
     # in search occur in a particular document
@@ -282,13 +282,17 @@ def update_data(obj):
             if cr.isalpha():
                 word += cr
             else:
+                word = word.lower()
                 if len(word) <= 2 or word in stop_words:  # ******** use word.lower() before this
                     word = ""
                     continue
-                word = word.lower()
+
                 word = snow_stemmer.stem(word)
                 # if word is not in lexicon then this word is added to lexicon with new word-id and '0' word count
                 if word not in lexicon:
+                    if word in stop_words:
+                        word = ""
+                        continue
                     lexicon[word] = [lx_id, 0]
                     lx_id += 1
 
@@ -314,13 +318,16 @@ def update_data(obj):
             if cr.isalpha():
                 word += cr
             else:
+                word = word.lower()
                 if len(word) <= 2 or word in stop_words:
                     word = ""
                     continue
-                word = word.lower()
                 word = snow_stemmer.stem(word)
                 # if word is not in lexicon then this word is added to lexicon with new word-id and '0' word count
                 if word not in lexicon:
+                    if word in stop_words:
+                        word = ""
+                        continue
                     lexicon[word] = [lx_id, 0]
                     lx_id += 1
 
@@ -397,10 +404,9 @@ else:
     for i in range(len(accumulativefreq)):
         filestreams.append(open("InvertedIndex/" + str(i) + ".txt", "r"))
 
-    word = 'Which books should I read'
+    word = 'covid deaths'
     start_time = time.time()
     final_list = WordSearch(word)  # search for the word
     # close files
     for i in range(len(accumulativefreq)):
         filestreams[i].close()
-

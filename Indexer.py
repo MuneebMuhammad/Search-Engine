@@ -80,7 +80,6 @@ def create_invertedindex():
             last = a
         else:
             arr[number_of_barrels][index] = last
-
     # store cumulative frequency
     a_file = open("arr.pkl", "wb")
     pickle.dump(arr, a_file)
@@ -106,6 +105,7 @@ def create_invertedindex():
         with open('InvertedIndex/' + str(i) + '.txt', 'w') as wobj:
             for f in listinverted:
                 wobj.write(str(f[0] + '#' + f[1] + '#' + f[2] + '#' + f[3]))
+
 
 
 # divide words of one article into barrels according to wordID
@@ -219,9 +219,9 @@ if not os.path.exists('Lexicon.pkl'):
         myjsonfile = open(cwd + '/' + f, 'r')
         jsondata = myjsonfile.read()
         fileobj = json.loads(jsondata)
+        print(len(fileobj))
         myjsonfile.close()
-        # update_data(fileobj)
-        print(f)
+        update_data(fileobj)
 
     # save lexicon
     a_file = open("Lexicon.pkl", "wb")
@@ -235,6 +235,7 @@ if not os.path.exists('Lexicon.pkl'):
 
     # closing forward index files       *********
 
-    # create_invertedindex()
+    create_invertedindex()
 
     print("time:", time.time() - start_time)
+

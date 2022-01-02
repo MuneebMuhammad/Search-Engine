@@ -1,4 +1,5 @@
 import pickle
+import time
 import webbrowser
 from tkinter import *
 from tkinter import filedialog
@@ -11,11 +12,13 @@ from functools import partial
 def onClickSearch():
     i = 0
     searched_text = textBox.get()
+    s = time.time()
     results = Searcher.WordSearch(searched_text, filestreams, lexicon, docids, accumulativefreq)
+    timetaken.delete(0.0, END)
+    timetaken.insert(END, "Time taken:"+str(time.time() - s))
     textView.delete(0.0, END)
     hyperLink = HyperlinkManager(textView)
-
-    while i < len(results):
+    while i < len(results) - 1:
         textView.insert(END, results[i])
         textView.insert(END, "\n")
         i += 1
@@ -31,7 +34,10 @@ def onClickInsert():
                                                       "*.json*"),
                                                      ("all files",
                                                       "*.*")))
-    Indexer.update_invertedindex(filepath)
+    try:
+        Indexer.update_invertedindex(filepath)
+    except FileNotFoundError:
+        print("File Not Found")
 
 
 filestreams = []
@@ -73,14 +79,18 @@ searchButton = Button(frame, text="Search", font=("Terminal", 10), width=6, comm
 
 searchButton.pack(side=RIGHT)
 
-frame.place(relx=0.25, rely=0.05, anchor="n")
+frame.place(relx=0.25, rely=0.07, anchor="center")
 
 scroll = Scrollbar(window)
 scroll.pack(side=RIGHT, fill=Y)
 
+timetaken = Text(window, width=20, height=1, background="white", font=("Terminal", 14))
+timetaken.place(relx=0.1, rely=0.13, anchor='center')
+
 textView = Text(window, width=120, height=25, background="white", font=("Segoe UI Semibold", 14),
                 yscrollcommand=scroll.set)
-textView.place(relx=0.44, rely=0.5, anchor=CENTER)
+textView.place(relx=0.465, rely=0.55, anchor='center')
+
 
 scroll.config(command=textView.yview)
 

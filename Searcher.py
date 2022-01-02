@@ -53,7 +53,7 @@ def proximity_rank(final_list, fixdata, fixrank):
 
 
 # prints the urls sorted by rank for the given word
-def WordSearch(word, filestreams, lexicon, docids, accumulativefreq):
+def WordSearch(word,filestreams,lexicon,docids,accumulativefreq):
     results = []
     # priorities of documents on how many words mach by the search query
     thirdfix = {}  # highest priority
@@ -84,8 +84,7 @@ def WordSearch(word, filestreams, lexicon, docids, accumulativefreq):
             start = accumulativefreq[barrelid][offsetid - 1]
             end = accumulativefreq[barrelid][offsetid]
 
-        quality_rank = int(
-            100000 / lexicon[wd][1])  # this assigns weights to words based on how many documents they occur
+        quality_rank = int(100000/lexicon[wd][1]) # this assigns weights to words based on how many documents they occur
         # parse through the lines in the inverted index and get rank and hit list
         for line in itertools.islice(filestreams[barrelid], start, end):
             did, _, rank, hits = line.split('#')
@@ -129,11 +128,14 @@ def WordSearch(word, filestreams, lexicon, docids, accumulativefreq):
         final_list = proximity_rank(final_list, fixdata=firstfix, fixrank=firstrank)
 
     final_length = len(final_list)
-
     if final_length == 1:
         results.append("No match for the search!")
-    else:
+    elif final_length <= 50:
         for i in range(1, final_length):
+            results.append(docids[final_list[i][0]][1])
+            results.append(docids[final_list[i][0]][0])
+    else:
+        for i in range(1, 50):
             results.append(docids[final_list[i][0]][1])
             results.append(docids[final_list[i][0]][0])
 

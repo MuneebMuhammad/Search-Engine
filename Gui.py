@@ -9,6 +9,35 @@ import Searcher
 import Indexer
 from functools import partial
 
+def load_files():
+    global lexicon
+    global docids
+    global filestreams
+    global accumulativefreq
+
+    # load lexicon
+    a_file = open("Lexicon.pkl", "rb")
+    lexicon = pickle.load(a_file)
+    a_file.close()
+
+    # load accumulative frequency of words
+    a_file = open("arr.pkl", "rb")
+    accumulativefreq = pickle.load(a_file)
+    a_file.close()
+
+    # load docid and its url
+    a_file = open("docid.pkl", "rb")
+    docids = pickle.load(a_file)
+    a_file.close()
+    filestreams = []
+    # open file streams for all inverted index barrels
+    for i in range(len(accumulativefreq)):
+        filestreams.append(open("InvertedIndex/" + str(i) + ".txt", "r"))
+
+def file_close():
+    global filestreams
+    for i in range(len(accumulativefreq)):
+        filestreams[i].close()
 
 def onClickSearch():
     i = 0
@@ -29,6 +58,7 @@ def onClickSearch():
 
 
 def onClickInsert():
+    file_close()
     filepath = filedialog.askopenfilename(initialdir="/",
                                           title="Select a File",
                                           filetypes=(("Json files",
@@ -37,31 +67,19 @@ def onClickInsert():
                                                       "*.*")))
     try:
         Indexer.update_invertedindex(filepath)
+        load_files()
         messagebox.showinfo("Update", "Inverted Index Updated")
     except FileNotFoundError:
         print("File Not Found")
 
 
 filestreams = []
+lexicon = {}
+accumulativefreq = [[]]
+docids = [[]]
 
-# load lexicon
-a_file = open("Lexicon.pkl", "rb")
-lexicon = pickle.load(a_file)
-a_file.close()
-
-# load accumulative frequency of words
-a_file = open("arr.pkl", "rb")
-accumulativefreq = pickle.load(a_file)
-a_file.close()
-
-# load docid and its url
-a_file = open("docid.pkl", "rb")
-docids = pickle.load(a_file)
-a_file.close()
-
+load_files()
 # open file streams for all inverted index barrels
-for i in range(len(accumulativefreq)):
-    filestreams.append(open("InvertedIndex/" + str(i) + ".txt", "r"))
 
 window = Tk()
 window.title('Search')
@@ -98,5 +116,4 @@ scroll.config(command=textView.yview)
 # to show the window
 window.mainloop()
 # close files
-for i in range(len(accumulativefreq)):
-    filestreams[i].close()
+file_close()

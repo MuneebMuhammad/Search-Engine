@@ -121,10 +121,10 @@ def WordSearch(word,filestreams,lexicon,docids,accumulativefreq):
     if len(thirdrank) != 0:
         final_list = proximity_rank(final_list, fixdata=thirdfix, fixrank=thirdrank)
 
-    if len(final_list) <= 11 and len(secondrank) != 0:
+    if len(final_list) <= 50 and len(secondrank) != 0:
         final_list = proximity_rank(final_list, fixdata=secondfix, fixrank=secondrank)
 
-    if len(final_list) <= 11 and len(firstrank) != 0:
+    if len(final_list) <= 50 and len(firstrank) != 0:
         final_list = proximity_rank(final_list, fixdata=firstfix, fixrank=firstrank)
 
     final_length = len(final_list)

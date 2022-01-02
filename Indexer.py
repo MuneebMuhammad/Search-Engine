@@ -25,7 +25,9 @@ def update_invertedindex(filepath):
     global lx_id
     global docid
     global url_check
+    global barrels
 
+    barrels = {}
     # load the previous lexicon and get the next wordid and document information
     if Path("Lexicon.pkl").is_file():
         with open("Lexicon.pkl", 'rb') as l:

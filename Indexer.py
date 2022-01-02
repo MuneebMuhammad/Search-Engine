@@ -238,4 +238,3 @@ if not os.path.exists('Lexicon.pkl'):
     create_invertedindex()
 
     print("time:", time.time() - start_time)
-

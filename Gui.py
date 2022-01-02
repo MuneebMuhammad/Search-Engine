@@ -3,6 +3,7 @@ import time
 import webbrowser
 from tkinter import *
 from tkinter import filedialog
+from tkinter import messagebox
 from tkHyperLinkManager import HyperlinkManager
 import Searcher
 import Indexer
@@ -15,7 +16,7 @@ def onClickSearch():
     s = time.time()
     results = Searcher.WordSearch(searched_text, filestreams, lexicon, docids, accumulativefreq)
     timetaken.delete(0.0, END)
-    timetaken.insert(END, "Time taken:"+str(time.time() - s))
+    timetaken.insert(END, "Time taken:" + str(time.time() - s))
     textView.delete(0.0, END)
     hyperLink = HyperlinkManager(textView)
     while i < len(results) - 1:
@@ -36,6 +37,7 @@ def onClickInsert():
                                                       "*.*")))
     try:
         Indexer.update_invertedindex(filepath)
+        messagebox.showinfo("Update", "Inverted Index Updated")
     except FileNotFoundError:
         print("File Not Found")
 
@@ -90,7 +92,6 @@ timetaken.place(relx=0.1, rely=0.13, anchor='center')
 textView = Text(window, width=120, height=25, background="white", font=("Segoe UI Semibold", 14),
                 yscrollcommand=scroll.set)
 textView.place(relx=0.465, rely=0.55, anchor='center')
-
 
 scroll.config(command=textView.yview)
 
